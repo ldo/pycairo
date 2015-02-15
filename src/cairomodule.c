@@ -223,6 +223,8 @@ static struct PyModuleDef cairomodule = {
 PyObject *
 PyInit__cairo(void)
 {
+  CairoError = PyExc_RuntimeError;
+    /* too complicated to define my own Exception type, use RuntimeError for now */
   if (PyType_Ready(&PycairoContext_Type) < 0)
     return NULL;
   if (PyType_Ready(&PycairoFontFace_Type) < 0)
