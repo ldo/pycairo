@@ -1,6 +1,4 @@
 import distutils.core      as dic
-import distutils.sysconfig as dsy
-import os
 import subprocess
 import sys
 
