@@ -111,10 +111,10 @@ dic.setup(
   version = pycairo_version,
   description = "python interface for cairo",
   ext_modules = [cairo],
+  package_dir = {"cairo" : "src"},
+  packages = ["cairo"],
   data_files = [
     ('include/pycairo', ['src/py3cairo.h']),
     ('lib/pkgconfig', [pkgconfig_file]),
-    (os.path.join(dsy.get_python_lib(), 'cairo'),
-     ['src/__init__.py']),
     ],
   )
