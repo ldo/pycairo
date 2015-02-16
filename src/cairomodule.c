@@ -223,9 +223,6 @@ static struct PyModuleDef cairomodule = {
 PyObject *
 PyInit__cairo(void)
 {
-  CairoError = PyErr_NewExceptionWithDoc("cairo.CairoError", "error returned from underlying Cairo API", NULL, NULL);
-  if (CairoError == NULL)
-    return NULL;
   if (PyType_Ready(&PycairoContext_Type) < 0)
     return NULL;
   if (PyType_Ready(&PycairoFontFace_Type) < 0)
@@ -310,6 +307,7 @@ PyInit__cairo(void)
     Py_DECREF(m);
     return NULL;
   }
+  CairoError = GETSTATE(m)->ErrorObject;
 
   PyModule_AddStringConstant(m, "version", VERSION);
   PyModule_AddObject(m, "version_info",
