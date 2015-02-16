@@ -1,10 +1,5 @@
-#!/usr/bin/env python
-
 import distutils.core      as dic
-import distutils.dir_util  as dut
-import distutils.file_util as fut
 import distutils.sysconfig as dsy
-import io
 import os
 import subprocess
 import sys
