@@ -79,6 +79,20 @@ matrix_invert (PycairoMatrix *o) {
   Py_RETURN_NONE;
 }
 
+static PyObject * matrix_inverse
+  (
+	PycairoMatrix * o
+  )
+  {
+	cairo_matrix_t result = o->matrix;
+	if (Pycairo_Check_Status(cairo_matrix_invert(&result)))
+		return
+			NULL;
+	else
+		return
+			PycairoMatrix_FromMatrix(&result);
+  } /*matrix_inverse*/
+
 /* cairo_matrix_multiply */
 static PyObject *
 matrix_multiply (PycairoMatrix *o, PyObject *args) {
@@ -277,14 +291,15 @@ static PyMethodDef matrix_methods[] = {
    * cairo_matrix_init_translate()   cairo.Matrix(x0=x0,y0=y0)
    * cairo_matrix_init_scale()       cairo.Matrix(xx=xx,yy=yy)
    */
-  {"init_rotate", (PyCFunction)matrix_init_rotate, METH_VARARGS | METH_CLASS },
-  {"invert",      (PyCFunction)matrix_invert,                METH_NOARGS },
+  {"init_rotate", (PyCFunction)matrix_init_rotate, METH_VARARGS | METH_CLASS, "returns a new Matrix that rotates by the specified angle" },
+  {"invert",      (PyCFunction)matrix_invert,                METH_NOARGS, "replaces the Matrix with its inverse" },
+  {"inv",         (PyCFunction)matrix_inverse,               METH_NOARGS, "returns the inverse of the Matrix" },
   {"multiply",    (PyCFunction)matrix_multiply,              METH_VARARGS },
-  {"rotate",      (PyCFunction)matrix_rotate,                METH_VARARGS },
-  {"scale",       (PyCFunction)matrix_scale,                 METH_VARARGS },
-  {"transform_distance",(PyCFunction)matrix_transform_distance, METH_VARARGS },
-  {"transform_point", (PyCFunction)matrix_transform_point,   METH_VARARGS },
-  {"translate",   (PyCFunction)matrix_translate,             METH_VARARGS },
+  {"rotate",      (PyCFunction)matrix_rotate,                METH_VARARGS, "replaces the Matrix with one that adds a rotation by the specified angle" },
+  {"scale",       (PyCFunction)matrix_scale,                 METH_VARARGS, "replaces the Matrix with one that adds a scaling by the specified factors" },
+  {"transform_distance",(PyCFunction)matrix_transform_distance, METH_VARARGS, "returns the transformation of the specified x and y values through the non-translation part of the Matrix" },
+  {"transform_point", (PyCFunction)matrix_transform_point,   METH_VARARGS, "returns the transformation of the specified x and y values through the Matrix" },
+  {"translate",   (PyCFunction)matrix_translate,             METH_VARARGS, "replaces the Matrix with one that adds a translation by the specified distances" },
   {NULL, NULL, 0, NULL},
 };
 
@@ -309,7 +324,12 @@ PyTypeObject PycairoMatrix_Type = {
   0,                                  /* tp_setattro */
   0,                                  /* tp_as_buffer */
   Py_TPFLAGS_DEFAULT,                 /* tp_flags */
-  NULL,                               /* tp_doc */
+  "Matrix(xx, xy, yx, yy, x0, y0) constructs a general affine matrix.\n"
+  "Use Matrix(xx = sx, yy = sy) to"
+  " construct a Matrix that scales by the specified sx and sy factors, Matrix(x0 = dx, xy = dy)"
+  " to construct a Matrix that translates by the specified dx and dy distances. See"
+  " Matrix.init_rotate to construct a rotation Matrix.",
+	/* tp_doc */
   0,                                  /* tp_traverse */
   0,                                  /* tp_clear */
   (richcmpfunc)matrix_richcmp,        /* tp_richcompare */
