@@ -17,11 +17,22 @@
  * along with pycairo. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <stdbool.h>
+
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
 
 #include "config.h"
 #include "private.h"
+
+#if CAIRO_HAS_FT_FONT
+#include <freetype2/ft2build.h>
+#include FT_FREETYPE_H
+#include <cairo-ft.h>
+#if CAIRO_HAS_FC_FONT
+#include <fontconfig/fontconfig.h>
+#endif /*CAIRO_HAS_FC_FONT*/
+#endif /*CAIRO_HAS_FT_FONT*/
 
 
 /* class cairo.FontFace --------------------------------------------------- */
@@ -77,17 +88,195 @@ font_face_new (PyTypeObject *type, PyObject *args, PyObject *kwds) {
   return NULL;
 }
 
-/*
+#if CAIRO_HAS_FT_FONT
+
+static FT_Library
+    FTLib = NULL;
+static cairo_user_data_key_t
+    face_destroyer;
+
+static PyObject * new_ft_font
+  (
+    const char * pathname,
+    int face_index
+  )
+  {
+    PyObject * result = NULL;
+    FT_Face the_face = NULL;
+    cairo_font_face_t * the_font = NULL;
+    int sts;
+    do /*once*/
+      {
+        if (FTLib == NULL)
+          {
+            sts = FT_Init_FreeType(&FTLib);
+            if (sts != 0)
+              {
+                PyErr_Format(PyExc_RuntimeError, "Could not initialize FreeType: error %d", sts);
+                break;
+              } /*if*/
+          } /*if*/
+        sts = FT_New_Face(FTLib, pathname, face_index, &the_face);
+        if (sts != 0)
+          {
+            PyErr_Format(PyExc_RuntimeError, "Could not load FreeType font: error %d", sts);
+            break;
+          } /*if*/
+        the_font = cairo_ft_font_face_create_for_ft_face(the_face, FT_LOAD_DEFAULT);
+        result = PycairoFontFace_FromFontFace(the_font);
+        if (PyErr_Occurred())
+            break;
+        sts = cairo_font_face_set_user_data
+          (
+            /*font_face =*/ the_font,
+            /*key =*/ &face_destroyer,
+            /*user_data =*/ (void *)the_face,
+            /*destroy =*/ (cairo_destroy_func_t)FT_Done_Face
+          );
+        if (sts != 0)
+          {
+            PyErr_Format(CairoError, "Cairo error %d trying to attach FT_Face cleanup: %s",
+                sts, cairo_status_to_string(sts));
+            Py_DECREF(result);
+            result = NULL;
+            break;
+          } /*if*/
+        the_face = NULL; /* so I don't dispose of it yet */
+        the_font = NULL; /* so I don't dispose of it yet */
+      }
+    while (false);
+    if (the_font != NULL)
+      {
+        cairo_font_face_destroy(the_font);
+      } /*if*/
+    if (the_face != NULL)
+      {
+        FT_Done_Face(the_face);
+      } /*if*/
+    return
+        result;
+  } /*new_ft_font*/
+
+static PyObject * ft_font_face_new_from_file
+  (
+    PyTypeObject * type,
+    PyObject * args
+  )
+  {
+    PyObject * result = NULL;
+    const char * pathname = NULL;
+    int face_index = 0;
+    do /*once*/
+      {
+        if (!PyArg_ParseTuple(args, "es|i:FontFace.new_from_file", NULL, &pathname, face_index))
+            break;
+        result = new_ft_font(pathname, face_index);
+        if (PyErr_Occurred())
+            break;
+      }
+    while (false);
+    PyMem_Free((void *)pathname);
+    return
+        result;
+  } /*ft_font_face_new_from_file*/
+
+#if CAIRO_HAS_FC_FONT
+
+static bool
+    FCInited = false;
+
+static PyObject * ft_font_face_new_from_pattern
+  (
+    PyTypeObject * type,
+    PyObject * args
+  )
+  {
+    PyObject * result = NULL;
+    const char * patternstr = NULL;
+    FcPattern
+        *searchpattern = NULL,
+        *foundpattern = NULL;
+    FcResult fcresult;
+    char * foundfilename;
+    int face_index;
+    do /*once*/
+      {
+        if (!PyArg_ParseTuple(args, "es:FontFace.new_from_pattern", NULL, &patternstr))
+            break;
+        if (!FCInited)
+          {
+            if (!FcInit())
+              {
+                PyErr_SetString(PyExc_RuntimeError, "could not initialize Fontconfig");
+                break;
+              } /*if*/
+            FCInited = true;
+          } /*if*/
+        searchpattern = FcNameParse((const FcChar8 *)patternstr);
+        if (searchpattern == NULL)
+          {
+            PyErr_SetString(PyExc_RuntimeError, "could not parse Fontconfig pattern string");
+            break;
+          } /*if*/
+        if (!FcConfigSubstitute(NULL, searchpattern, FcMatchPattern))
+          {
+            PyErr_SetString(PyExc_RuntimeError, "could not substitute Fontconfig configuration");
+            break;
+          } /*if*/
+        FcDefaultSubstitute(searchpattern);
+        foundpattern = FcFontMatch(NULL, searchpattern, &fcresult);
+        if (foundpattern == NULL || fcresult != FcResultMatch)
+          {
+            PyErr_SetString(PyExc_RuntimeError, "Fontconfig cannot match font name");
+            break;
+          } /*if*/
+        if (FcPatternGetString(foundpattern, FC_FILE, 0, &foundfilename) != FcResultMatch)
+          {
+            PyErr_SetString(PyExc_RuntimeError, "cannot get font name from Fontconfig");
+            break;
+          } /*if*/
+        if (FcPatternGetInteger(foundpattern, FC_INDEX, 0, &face_index) != FcResultMatch)
+          {
+            PyErr_SetString(PyExc_RuntimeError, "cannot get face index from Fontconfig");
+            break;
+          } /*if*/
+        result = new_ft_font(foundfilename, face_index);
+        if (PyErr_Occurred())
+            break;
+      }
+    while (false);
+    if (searchpattern != NULL)
+      {
+        FcPatternDestroy(searchpattern);
+      } /*if*/
+    if (foundpattern != NULL)
+      {
+        FcPatternDestroy(foundpattern);
+      } /*if*/
+    PyMem_Free((void *)patternstr);
+    return
+        result;
+  } /*ft_font_face_new_from_pattern*/
+
+#endif /*CAIRO_HAS_FC_FONT*/
+
+#endif /*CAIRO_HAS_FT_FONT*/
+
 static PyMethodDef font_face_methods[] = {
-     * methods never exposed in a language binding:
+     /* methods never exposed in a language binding:
      * cairo_font_face_destroy()
      * cairo_font_face_get_user_data()
      * cairo_font_face_get_type()
      * cairo_font_face_reference()
-     * cairo_font_face_set_user_data(),
-    {NULL, NULL, 0, NULL},
+     * cairo_font_face_set_user_data()*/
+#if CAIRO_HAS_FT_FONT
+    {"new_from_file", ft_font_face_new_from_file, METH_VARARGS | METH_CLASS, "loads a font from a file"},
+#if CAIRO_HAS_FC_FONT
+    {"new_from_pattern", ft_font_face_new_from_pattern, METH_VARARGS | METH_CLASS, "loads a font using a Fontconfig pattern string"},
+#endif /*CAIRO_HAS_FC_FONT*/
+#endif /*CAIRO_HAS_FT_FONT*/
+    {NULL, NULL, 0, NULL}
 };
-*/
 
 PyTypeObject PycairoFontFace_Type = {
   PyVarObject_HEAD_INIT(&PyType_Type, 0)
@@ -119,7 +308,7 @@ PyTypeObject PycairoFontFace_Type = {
   0,                                  /* tp_weaklistoffset */
   0,                                  /* tp_iter */
   0,                                  /* tp_iternext */
-  0,                                  /* tp_methods */
+  font_face_methods,                  /* tp_methods */
   0,                                  /* tp_members */
   0,                                  /* tp_getset */
   0,                                  /* tp_base */

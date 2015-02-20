@@ -419,6 +419,11 @@ PyInit__cairo(void)
 #else
   PyModule_AddIntConstant(m, "HAS_FT_FONT", 0);
 #endif
+#if CAIRO_HAS_FC_FONT
+  PyModule_AddIntConstant(m, "HAS_FC_FONT", 1);
+#else
+  PyModule_AddIntConstant(m, "HAS_FC_FONT", 0);
+#endif
 #if CAIRO_HAS_GLITZ_SURFACE
   PyModule_AddIntConstant(m, "HAS_GLITZ_SURFACE", 1);
 #else
