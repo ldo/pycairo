@@ -44,7 +44,7 @@ use.
     This class cannot be instantiated directly. Instead, it provides class
     methods for creating FontFace objects. These rely on FreeType and Fontconfig.
 
-   .. method:: new_from_file(filename[, face_index])
+   .. classmethod:: new_from_file(filename[, face_index])
 
       :param filename: the pathname to the font file
       :type filename: str
@@ -55,7 +55,7 @@ use.
       loads a font from a font file specified by pathname and font
       index within the file.
 
-   .. method:: new_from_pattern(pattern_string)
+   .. classmethod:: new_from_pattern(pattern_string)
 
       :param pattern_string: the Fontconfig pattern string to match
       :type pattern_string: str

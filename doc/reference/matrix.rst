@@ -86,13 +86,21 @@ For more information on matrix transformation see http://www.cairographics.org/m
       :returns: a new *Matrix* set to a transformation that rotates by *radians*.
 
 
+   .. method:: inverse()
+
+      :returns: a new *Matrix* which is the inverse of this one, if such exists.
+      :raises: :exc:`cairo.Error` if the *Matrix* has no inverse
+
+      Does not change this *Matrix*.
+
+
    .. method:: invert()
 
       :returns: If *Matrix* has an inverse, modifies *Matrix* to be the
         inverse matrix and returns *None*
-      :raises: :exc:`cairo.Error` if the *Matrix* as no inverse
+      :raises: :exc:`cairo.Error` if the *Matrix* has no inverse
 
-      Changes *Matrix* to be the inverse of it's original value. Not all
+      Changes *Matrix* to be the inverse of its original value. Not all
       transformation matrices have inverses; if the matrix collapses points
       together (it is *degenerate*), then it has no inverse and this function
       will fail.
