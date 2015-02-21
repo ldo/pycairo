@@ -41,20 +41,30 @@ use.
 
 .. class:: FontFace()
 
-   .. note:: This class cannot be instantiated directly, it is returned by
-     :meth:`Context.get_font_face`.
+    This class cannot be instantiated directly. Instead, it provides class
+    methods for creating FontFace objects. These rely on FreeType and Fontconfig.
 
+   .. method:: new_from_file(filename[, face_index])
 
+      :param filename: the pathname to the font file
+      :type filename: str
+      :param face_index: optional index of the font within the file (defaults to 0, i.e. the first or only font within the file)
+      :type face_index: int
+      :rtype: FontFace
 
-class FreeTypeFontFace(:class:`FontFace`)
-=========================================
+      loads a font from a font file specified by pathname and font
+      index within the file.
 
-FreeType Fonts - Font support for FreeType.
+   .. method:: new_from_pattern(pattern_string)
 
-The FreeType font backend is primarily used to render text on GNU/Linux
-systems, but can be used on other platforms too.
+      :param pattern_string: the Fontconfig pattern string to match
+      :type pattern_string: str
+      :rtype: FontFace
 
-   .. note:: FreeType Fonts are not implemented in pycairo because there is no open source Python bindings to FreeType (and fontconfig) that provides a C API. This a possible project idea for anyone interested in adding FreeType support to pycairo.
+      loads a font by finding the best match against the given Fontconfig
+      pattern string. This string can specify things such as (approximate)
+      family name, bold weight etc. For details, see the `Fontconfig user
+      documentation <http://www.freedesktop.org/software/fontconfig/fontconfig-user.html>`_.
 
 
 class ToyFontFace(:class:`FontFace`)
