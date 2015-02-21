@@ -1,12 +1,49 @@
-import distutils.core      as dic
-import subprocess
 import sys
+import os
+import subprocess
+import distutils.core as dic
+from distutils.command.build import build as std_build
+from distutils.command.clean import clean as std_clean
 
 pycairo_version        = '1.10.1'
 cairo_version_required = '1.10.2'
 python_version_required = (3,0)
 pkgconfig_file = 'py3cairo.pc'
 config_file    = 'src/config.h'
+
+class my_build(std_build) :
+    "customization of build to generate additional files."
+
+    def run(self) :
+        createConfigFile(config_file)
+        super().run()
+        createPcFile(pkgconfig_file)
+    #end run
+
+#end my_build
+
+class my_clean(std_clean) :
+    "customization of clean to remove additional files that I generate."
+
+    def run(self) :
+        super().run()
+        for \
+            item \
+        in \
+            (
+                pkgconfig_file,
+                config_file,
+            ) \
+        :
+            try :
+                os.unlink(item)
+            except OSError :
+                pass # assume ENOENT
+            #end try
+        #end for
+    #end run
+
+#end my_clean
 
 
 def call(command):
@@ -83,10 +120,6 @@ if sys.platform == 'win32':
 else:
   runtime_library_dirs = pkg_config_parse('--libs-only-L', 'cairo')
 
-createPcFile(pkgconfig_file)
-createConfigFile(config_file)
-
-
 cairo = dic.Extension(
   name = 'cairo._cairo',
   sources = ['src/cairomodule.c',
@@ -104,15 +137,22 @@ cairo = dic.Extension(
   runtime_library_dirs = runtime_library_dirs,
   )
 
-dic.setup(
-  name = "pycairo",
-  version = pycairo_version,
-  description = "python interface for cairo",
-  ext_modules = [cairo],
-  package_dir = {"cairo" : "src"},
-  packages = ["cairo"],
-  data_files = [
-    ('include/pycairo', ['src/py3cairo.h']),
-    ('lib/pkgconfig', [pkgconfig_file]),
-    ],
+dic.setup \
+  (
+    cmdclass =
+        {
+            "build" : my_build,
+            "clean" : my_clean,
+        },
+    name = "pycairo",
+    version = pycairo_version,
+    description = "python interface for cairo",
+    ext_modules = [cairo],
+    package_dir = {"cairo" : "src"},
+    packages = ["cairo"],
+    data_files =
+        [
+          ('include/pycairo', ['src/py3cairo.h']),
+          ('lib/pkgconfig', [pkgconfig_file]),
+        ],
   )
