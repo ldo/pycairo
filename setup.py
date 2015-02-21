@@ -1,9 +1,18 @@
+#+
+# Distutils script to build and install Pycairo. Invoke from the
+# command line in this directory as follows:
+#
+#     python3 setup.py install
+#-
+
 import sys
 import os
 import subprocess
 import distutils.core as dic
-from distutils.command.build import build as std_build
-from distutils.command.clean import clean as std_clean
+from distutils.command.build import \
+    build as std_build
+from distutils.command.clean import \
+    clean as std_clean
 
 pycairo_version        = '1.10.1'
 cairo_version_required = '1.10.2'
