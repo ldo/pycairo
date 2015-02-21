@@ -9,12 +9,14 @@ pycairo_version        = '1.10.1'
 cairo_version_required = '1.10.2'
 python_version_required = (3,0)
 pkgconfig_file = 'py3cairo.pc'
-config_file    = 'src/config.h'
+config_file = 'src/config.h'
+module_constants_file = "src/cairomodule_constants.h"
 
 class my_build(std_build) :
     "customization of build to generate additional files."
 
     def run(self) :
+        create_module_constants_file()
         createConfigFile(config_file)
         super().run()
         createPcFile(pkgconfig_file)
@@ -33,6 +35,7 @@ class my_clean(std_clean) :
             (
                 pkgconfig_file,
                 config_file,
+                module_constants_file,
             ) \
         :
             try :
@@ -119,6 +122,48 @@ if sys.platform == 'win32':
   runtime_library_dirs = []
 else:
   runtime_library_dirs = pkg_config_parse('--libs-only-L', 'cairo')
+
+def create_module_constants_file() :
+    "generates C source that wraps all the repetitive CAIRO_HAS_xxx constants."
+    out = open(module_constants_file, "w")
+    out.write("  /* constants */\n")
+    for \
+        name \
+    in \
+        (
+            "ATSUI_FONT",
+            "FT_FONT",
+            "FC_FONT",
+            "GLITZ_SURFACE",
+            "IMAGE_SURFACE",
+            "PDF_SURFACE",
+            "PNG_FUNCTIONS",
+            "PS_SURFACE",
+            "RECORDING_SURFACE",
+            "SVG_SURFACE",
+            "USER_FONT",
+            "QUARTZ_SURFACE",
+            "WIN32_FONT",
+            "WIN32_SURFACE",
+            "XCB_SURFACE",
+            "XLIB_SURFACE",
+        ) \
+    :
+        out.write \
+          (
+                "#if CAIRO_HAS_%(name)s\n"
+                "  PyModule_AddIntConstant(m, \"HAS_%(name)s\", 1);\n"
+                "#else\n"
+                "  PyModule_AddIntConstant(m, \"HAS_%(name)s\", 0);\n"
+                "#endif\n"
+            %
+                {
+                    "name" : name,
+                }
+          )
+    #end for
+    out.flush()
+#end create_module_constants_file
 
 cairo = dic.Extension(
   name = 'cairo._cairo',
