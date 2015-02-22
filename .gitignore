@@ -18,3 +18,4 @@ build_directory
 py3cairo.pc
 
 src/config.h
+src/cairomodule_constants.h
