@@ -34,10 +34,29 @@ class my_build(std_build) :
 #end my_build
 
 class my_clean(std_clean) :
-    "customization of clean to remove additional files that I generate."
+    "customization of clean to remove additional files and directories that I generate."
 
     def run(self) :
         super().run()
+        for \
+            dir \
+        in \
+            (
+                "doc/_build",
+            ) \
+        :
+            if os.path.isdir(dir) :
+                for root, subdirs, subfiles in os.walk(dir, topdown = False) :
+                    for item in subfiles :
+                        os.unlink(os.path.join(root, item))
+                    #end for
+                    for item in subdirs :
+                        os.rmdir(os.path.join(root, item))
+                    #end for
+                #end for
+                os.rmdir(dir)
+            #end if
+        #end for
         for \
             item \
         in \
