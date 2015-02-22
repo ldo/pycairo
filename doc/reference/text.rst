@@ -55,10 +55,12 @@ use.
       loads a font from a font file specified by pathname and font
       index within the file.
 
-   .. classmethod:: new_from_pattern(pattern_string)
+   .. classmethod:: new_from_pattern(pattern_string[, font_options])
 
       :param pattern_string: the Fontconfig pattern string to match
       :type pattern_string: str
+      :param font_options: optional font_options settings.
+      :type font_options: FontOptions
       :rtype: FontFace
 
       loads a font by finding the best match against the given Fontconfig

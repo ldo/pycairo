@@ -1,6 +1,7 @@
 /* -*- mode: C; c-basic-offset: 2 -*-
  *
  * Copyright © 2003,2010 James Henstridge, Steven Chaplin
+ * Copyright © 2015 Lawrence D'Oliveiro
  *
  * This file is part of pycairo.
  *
@@ -95,18 +96,22 @@ static FT_Library
 static cairo_user_data_key_t
     face_destroyer;
 
-static PyObject * new_ft_font
+static PyObject * ft_font_face_new_from_file
   (
-    const char * pathname,
-    int face_index
+    PyTypeObject * type,
+    PyObject * args
   )
   {
     PyObject * result = NULL;
+    const char * pathname = NULL;
+    int face_index = 0;
     FT_Face the_face = NULL;
     cairo_font_face_t * the_font = NULL;
     int sts;
     do /*once*/
       {
+        if (!PyArg_ParseTuple(args, "es|i:FontFace.new_from_file", NULL, &pathname, &face_index))
+            break;
         if (FTLib == NULL)
           {
             sts = FT_Init_FreeType(&FTLib);
@@ -153,28 +158,6 @@ static PyObject * new_ft_font
       {
         FT_Done_Face(the_face);
       } /*if*/
-    return
-        result;
-  } /*new_ft_font*/
-
-static PyObject * ft_font_face_new_from_file
-  (
-    PyTypeObject * type,
-    PyObject * args
-  )
-  {
-    PyObject * result = NULL;
-    const char * pathname = NULL;
-    int face_index = 0;
-    do /*once*/
-      {
-        if (!PyArg_ParseTuple(args, "es|i:FontFace.new_from_file", NULL, &pathname, face_index))
-            break;
-        result = new_ft_font(pathname, face_index);
-        if (PyErr_Occurred())
-            break;
-      }
-    while (false);
     PyMem_Free((void *)pathname);
     return
         result;
@@ -193,16 +176,30 @@ static PyObject * ft_font_face_new_from_pattern
   {
     PyObject * result = NULL;
     const char * patternstr = NULL;
-    FcPattern
-        *searchpattern = NULL,
-        *foundpattern = NULL;
-    FcResult fcresult;
-    char * foundfilename;
-    int face_index;
+    FcPattern *searchpattern = NULL;
+    PyObject * font_options = NULL;
     do /*once*/
       {
-        if (!PyArg_ParseTuple(args, "es:FontFace.new_from_pattern", NULL, &patternstr))
+        if (!PyArg_ParseTuple(args, "es|O:FontFace.new_from_pattern", NULL, &patternstr, &font_options))
             break;
+        if (font_options == Py_None)
+          {
+            font_options = NULL;
+          } /*if*/
+        if (font_options != NULL)
+          {
+          /* I would have liked to have used a "O!" item in PyArg_ParseTuple (above)
+            so it would automatically check for me that font_options is of
+            &PycairoFontOptions_Type. However, when I tried this, I would get
+            a "double free or corruption" error reported, seemingly during the
+            PyArg_ParseTuple call. So I am left with doing the type checking myself. */
+            if (PyObject_IsInstance(font_options, &PycairoFontOptions_Type) <= 0)
+              {
+                PyErr_SetString(PyExc_TypeError, "font_options arg must be of FontOptions type");
+                break;
+              } /*if*/
+            Py_INCREF(font_options);
+          } /*if*/
         if (!FCInited)
           {
             if (!FcInit())
@@ -223,35 +220,24 @@ static PyObject * ft_font_face_new_from_pattern
             PyErr_SetString(PyExc_RuntimeError, "could not substitute Fontconfig configuration");
             break;
           } /*if*/
+        if (font_options != NULL)
+          {
+            cairo_ft_font_options_substitute
+              (
+                ((PycairoFontOptions *)font_options)->font_options,
+                searchpattern
+              );
+          } /*if*/
         FcDefaultSubstitute(searchpattern);
-        foundpattern = FcFontMatch(NULL, searchpattern, &fcresult);
-        if (foundpattern == NULL || fcresult != FcResultMatch)
-          {
-            PyErr_SetString(PyExc_RuntimeError, "Fontconfig cannot match font name");
-            break;
-          } /*if*/
-        if (FcPatternGetString(foundpattern, FC_FILE, 0, &foundfilename) != FcResultMatch)
-          {
-            PyErr_SetString(PyExc_RuntimeError, "cannot get font name from Fontconfig");
-            break;
-          } /*if*/
-        if (FcPatternGetInteger(foundpattern, FC_INDEX, 0, &face_index) != FcResultMatch)
-          {
-            PyErr_SetString(PyExc_RuntimeError, "cannot get face index from Fontconfig");
-            break;
-          } /*if*/
-        result = new_ft_font(foundfilename, face_index);
+        result = PycairoFontFace_FromFontFace(cairo_ft_font_face_create_for_pattern(searchpattern));
         if (PyErr_Occurred())
             break;
       }
     while (false);
+    Py_XDECREF(font_options);
     if (searchpattern != NULL)
       {
         FcPatternDestroy(searchpattern);
-      } /*if*/
-    if (foundpattern != NULL)
-      {
-        FcPatternDestroy(foundpattern);
       } /*if*/
     PyMem_Free((void *)patternstr);
     return
