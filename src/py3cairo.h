@@ -146,10 +146,10 @@ typedef struct {
 
   PyTypeObject *RectangleInt_Type;
   PyObject *(*RectangleInt_FromRectangleInt)(
-      const cairo_rectangle_int_t *rectangle_int);
+      cairo_rectangle_int_t *rectangle_int);
 
   PyTypeObject *Region_Type;
-  PyObject *(*Region_FromRegion)(const cairo_region_t *region);
+  PyObject *(*Region_FromRegion)(cairo_region_t *region);
 
 } Pycairo_CAPI_t;
 

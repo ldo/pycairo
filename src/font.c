@@ -193,7 +193,7 @@ static PyObject * ft_font_face_new_from_pattern
             &PycairoFontOptions_Type. However, when I tried this, I would get
             a "double free or corruption" error reported, seemingly during the
             PyArg_ParseTuple call. So I am left with doing the type checking myself. */
-            if (PyObject_IsInstance(font_options, &PycairoFontOptions_Type) <= 0)
+            if (PyObject_IsInstance(font_options, (PyObject *)&PycairoFontOptions_Type) <= 0)
               {
                 PyErr_SetString(PyExc_TypeError, "font_options arg must be of FontOptions type");
                 break;
@@ -256,9 +256,9 @@ static PyMethodDef font_face_methods[] = {
      * cairo_font_face_reference()
      * cairo_font_face_set_user_data()*/
 #if CAIRO_HAS_FT_FONT
-    {"new_from_file", ft_font_face_new_from_file, METH_VARARGS | METH_CLASS, "loads a font from a file"},
+    {"new_from_file", (PyCFunction)ft_font_face_new_from_file, METH_VARARGS | METH_CLASS, "loads a font from a file"},
 #if CAIRO_HAS_FC_FONT
-    {"new_from_pattern", ft_font_face_new_from_pattern, METH_VARARGS | METH_CLASS, "loads a font using a Fontconfig pattern string"},
+    {"new_from_pattern", (PyCFunction)ft_font_face_new_from_pattern, METH_VARARGS | METH_CLASS, "loads a font using a Fontconfig pattern string"},
 #endif /*CAIRO_HAS_FC_FONT*/
 #endif /*CAIRO_HAS_FT_FONT*/
     {NULL, NULL, 0, NULL}

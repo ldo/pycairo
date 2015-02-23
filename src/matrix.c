@@ -111,7 +111,7 @@ matrix_multiply (PycairoMatrix *o, PyObject *args) {
 static PyObject *
 matrix_operator_multiply (PycairoMatrix *o, PycairoMatrix *o2) {
   cairo_matrix_t result;
-  if (PyObject_IsInstance(o2, &PycairoMatrix_Type) <= 0)
+  if (PyObject_IsInstance((PyObject *)o2, (PyObject *)&PycairoMatrix_Type) <= 0)
     {
 		PyErr_SetString(PyExc_TypeError, "matrix can only multiply another matrix");
 		return NULL;
