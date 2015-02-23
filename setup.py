@@ -1,8 +1,18 @@
 #+
-# Distutils script to build and install Pycairo. Invoke from the
-# command line in this directory as follows:
+# Distutils script to build and install Pycairo. To avoid ending
+# up with files in this directory belonging to root instead of
+# the current user, do the build/install in two steps. First, as
+# an ordinary user:
 #
-#     python3 setup.py install
+#     python3 setup.py build
+#
+# then:
+#
+#    sudo python3 setup.py install --skip-build
+#
+# To get rid of build products afterwards, do
+#
+#     python3 setup.py clean --all
 #-
 
 import sys
