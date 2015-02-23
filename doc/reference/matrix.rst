@@ -86,7 +86,7 @@ For more information on matrix transformation see http://www.cairographics.org/m
       :returns: a new *Matrix* set to a transformation that rotates by *radians*.
 
 
-   .. method:: inverse()
+   .. method:: inv()
 
       :returns: a new *Matrix* which is the inverse of this one, if such exists.
       :raises: :exc:`cairo.Error` if the *Matrix* has no inverse
