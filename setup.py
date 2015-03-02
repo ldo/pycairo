@@ -8,7 +8,7 @@
 #
 # then:
 #
-#    sudo python3 setup.py install --skip-build
+#    sudo python3 setup.py install
 #
 # To get rid of build products afterwards, do
 #
